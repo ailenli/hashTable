@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BUCKET_COUNT 1024
+#define BUCKET_COUNT 4
 
 typedef struct tagHashEntry{
 	char * key;
@@ -33,24 +33,32 @@ int initHashTable(hashTable *t)
 int freeHashTable(hashTable * t)
 {
 	if(NULL == t) return -1;
-	hashEntry * entry,* entry_next;
+	hashEntry * entry,* tmp_entry;
 	for(int i=0;i<BUCKET_COUNT;i++)
 	{
 		entry = &(t->bucket[i]);
-		while(entry->next != NULL)
-		{
-			entry_next = entry->next;
-			
-			free(entry_next->key);
-			entry_next->key = NULL;
-			free(entry_next->value);
-			entry_next->value = NULL;
+		//释放数组这里的节点
+		free(entry->key);
+		entry->key = NULL;
+		free(entry->value);
+		entry->value = NULL;
+		entry = entry->next;
 
-			entry->next = entry_next->next;
-			free(entry_next);
-			entry_next = NULL;
+		while(entry != NULL)
+		{
+			//释放每个节点的key,value
+			free(entry->key);
+			entry->key = NULL;
+			free(entry->value);
+			entry->value = NULL;
+			//释放整个entry节点
+			tmp_entry = entry;
+			entry = entry->next;
+			free(tmp_entry);
 		}
+	
 	}
+
 }
 
 //返回hash桶的index,key to index的计算过程
@@ -68,13 +76,11 @@ int hashFunc(const char * key) //key 指向的内容不能改变
 	return bucket_index;
 }
 
-//insert hashTable,还可以替换数据
-
+//insert hashTable,如果原来的key有value存在，还可以替换原来的value数据
 int insertEntry(hashTable * t,const char * key,const char * value)
 {
 	if(NULL == t || NULL == key || NULL == value)
 		return -1;
-
 	hashEntry * entry,* entry_next;
 	int bucket_index = hashFunc(key);
 	if(t->bucket[bucket_index].key == NULL)
@@ -129,6 +135,55 @@ const char * findValueByKey(const hashTable * t,const char * key)
 	}
 	return NULL;
 }
+//如果key存在就在hashTable中删除,return -1表示没有这个key
+int removeHashEntry(hashTable * t,const char *key)
+{
+	if(NULL == t || NULL == key)
+		return -1;
+	int bucket_index = hashFunc(key);
+	hashEntry * entry = &(t->bucket[bucket_index]);
+	//判断是否是桶里面的第一个
+	if(strcmp(entry->key,key) == 0)
+	{
+		//桶里面只有一个entry
+		if(entry->next == NULL)
+		{
+			free(entry->key);
+			entry->key = NULL;
+			free(entry->value);
+			entry->value = NULL;
+		}
+		else//桶里面都至少两个entry
+		{
+			free(entry->key);
+			free(entry->value);
+			entry->key = entry->next->key;
+			entry->value = entry->next->value;
+			entry->next = entry->next->next;
+		}
+	}
+	else//链表里面的entry
+	{
+		hashEntry * pre_entry = entry;
+		entry = entry->next;
+		if(entry == NULL)
+			return -1;//链表里面没有entry
+		while(entry != NULL)
+		{
+			if(strcmp(entry->key,key) == 0)
+			{
+				free(entry->key);
+				free(entry->value);
+				pre_entry->next = entry->next;
+				free(entry);
+				entry = NULL;
+				return 0;
+			}
+			entry = entry->next;
+		}
+	}
+	return -1;
+}
 
 void printHashTable(hashTable * t)
 {
@@ -155,6 +210,18 @@ int main(int argc, char const *argv[])
 	insertEntry(&t,"ailen","27");
 	insertEntry(&t,"lamber","1");
 	insertEntry(&t,"trista","25");
+	insertEntry(&t,"sugar","2");
+	insertEntry(&t,"li","49");
+	printHashTable(&t);
+	printf("----------------------------------\n");
+	removeHashEntry(&t,"ailen");
+	printHashTable(&t);
+	printf("----------------------------------\n");
+	removeHashEntry(&t,"li");	
+	printHashTable(&t);
+	printf("----------------------------------\n");
+	freeHashTable(&t);
+	
 	printHashTable(&t);
 
 	return 0;

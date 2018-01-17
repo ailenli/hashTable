@@ -33,7 +33,7 @@ int initHashTable(hashTable *t)
 int freeHashTable(hashTable * t)
 {
 	if(NULL == t) return -1;
-	hashEntry * entry,* tmp_entry;
+	hashEntry * entry,* tmp_entry,*pre_entry;
 	for(int i=0;i<BUCKET_COUNT;i++)
 	{
 		entry = &(t->bucket[i]);
@@ -42,6 +42,7 @@ int freeHashTable(hashTable * t)
 		entry->key = NULL;
 		free(entry->value);
 		entry->value = NULL;
+
 		entry = entry->next;
 
 		while(entry != NULL)
@@ -55,8 +56,9 @@ int freeHashTable(hashTable * t)
 			tmp_entry = entry;
 			entry = entry->next;
 			free(tmp_entry);
-		}
-	
+			tmp_entry = NULL;
+		}//end of while
+		t->bucket[i].next = NULL;
 	}
 
 }
@@ -157,9 +159,11 @@ int removeHashEntry(hashTable * t,const char *key)
 		{
 			free(entry->key);
 			free(entry->value);
-			entry->key = entry->next->key;
-			entry->value = entry->next->value;
-			entry->next = entry->next->next;
+			hashEntry * tmp_entry = entry->next;
+			entry->key = tmp_entry->key;
+			entry->value = tmp_entry->value;
+			entry->next = tmp_entry->next;
+			free(tmp_entry);
 		}
 	}
 	else//链表里面的entry
@@ -194,7 +198,7 @@ void printHashTable(hashTable * t)
 		entry = &(t->bucket[i]);
 		while(entry != NULL)
 		{
-			if(entry->key != NULL)
+			if(entry->key != NULL && entry->value != NULL)
 			{
 				printf("\t%s\t=\t%s\n",entry->key,entry->value);
 			}
@@ -208,16 +212,20 @@ int main(int argc, char const *argv[])
 	hashTable t;
 	initHashTable(&t);
 	insertEntry(&t,"ailen","27");
-	insertEntry(&t,"lamber","1");
 	insertEntry(&t,"trista","25");
+	insertEntry(&t,"lamber","1");
+	
 	insertEntry(&t,"sugar","2");
 	insertEntry(&t,"li","49");
+	insertEntry(&t,"jiang","50");
+	insertEntry(&t,"ai","111");
+	insertEntry(&t,"tao","96");
 	printHashTable(&t);
 	printf("----------------------------------\n");
-	removeHashEntry(&t,"ailen");
+	//removeHashEntry(&t,"ailen");
 	printHashTable(&t);
 	printf("----------------------------------\n");
-	removeHashEntry(&t,"li");	
+	//removeHashEntry(&t,"li");	
 	printHashTable(&t);
 	printf("----------------------------------\n");
 	freeHashTable(&t);
